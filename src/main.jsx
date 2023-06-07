@@ -1,10 +1,18 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const queryString = window.location.search.substring(1);
+const params = queryString.split("&").reduce((acc, curr) => {
+  const [key, value] = curr.split("=");
+  acc[key] = value;
+  return acc;
+}, {});
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
   <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+    <App paramData={params} />
+  </React.StrictMode>
+);
