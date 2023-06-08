@@ -3,12 +3,8 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 
-const queryString = window.location.search.substring(1);
-const params = queryString.split("&").reduce((acc, curr) => {
-  const [key, value] = curr.split("=");
-  acc[key] = value;
-  return acc;
-}, {});
+// Get URL search params and convert to object
+const params = Object.fromEntries(new URLSearchParams(window.location.search));
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

@@ -1,77 +1,74 @@
 import { useEffect, useState } from "react";
-import {
-  ResponsiveContainer,
-  LineChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  Line,
-} from "recharts";
 import API from "./utils/API";
 import tools from "./utils/tools";
+import CustomLegend from "./components/CustomLegend";
+import SowDayPicker from "./components/SowDayPicker";
+import WeatherChart from "./components/WeatherChart";
+import ErrorChart from "./components/ErrorChart";
+import Loader from "./components/Loader";
 
 const App = ({ paramData }) => {
   const [dateRange, setDateRange] = useState(null);
   const [lineData, setLineData] = useState({
     daysData: [],
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [sowDay, setSowDay] = useState(new Date(paramData.sow || Date()));
+  // Update state when paramData.sow changes
   useEffect(() => {
-    const dispRange = tools.getRange(paramData.sow);
-    setDateRange(dispRange);
-  }, []);
-
+    if (!paramData.sow || !paramData.id) {
+      setIsError(true);
+    } else {
+      updateSowDay(paramData.sow);
+    }
+  }, [paramData]);
+  // Fetch weather data when dateRange changes
   useEffect(() => {
     if (dateRange) {
+      setIsError(false);
+      setIsLoading(true);
       API.getWeather(paramData.id, { pov: "growth", ...dateRange })
         .then((res) => tools.processWeatherData(res, paramData.sow))
         .then((daysData) => {
           setLineData({ daysData });
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.log(error);
+          setIsError(true);
+          setIsLoading(false);
         });
+    } else {
+      setLineData({ daysData: [] });
+      setIsError(true);
     }
   }, [dateRange]);
 
+  const updateSowDay = (dayData) => {
+    const dispRange = tools.getRange(dayData);
+    setDateRange(dispRange);
+    setSowDay(new Date(dayData));
+  };
+
   return (
     <>
-      {lineData.daysData.length && (
-        <ResponsiveContainer minHeight={400} width={"100%"}>
-          <LineChart
-            data={lineData.daysData}
-            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
-          >
-            <CartesianGrid stroke="#ccc" strokeDasharray="1" />
-            <XAxis dataKey="date" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="temp"
-              stroke="#457b9d"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="preci"
-              stroke="#1d3558"
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="dtemp"
-              stroke="#e73845"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="dpreci"
-              stroke="#1d3558"
-            />
-            <Tooltip />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
+      <div className="flex flex-col sm:flex-row justify-between gap-2 items-center p-4 sm:px-14 flex-wrap">
+        <SowDayPicker
+          sowDay={sowDay}
+          setSowDay={(e) =>
+            updateSowDay(new Date(e.target.value || paramData.sow))
+          }
+        />
+        <CustomLegend />
+      </div>
+      <div className="w-full h-72 sm:h-96 md:h-[28rem] lg:h-[32rem] relative">
+        {lineData.daysData.length > 0 ? (
+          <WeatherChart lineData={lineData} />
+        ) : null}
+        {isError ? <ErrorChart /> : null}
+        {isLoading ? <Loader /> : null}
+      </div>
     </>
   );
 };

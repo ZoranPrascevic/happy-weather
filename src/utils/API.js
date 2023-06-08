@@ -1,4 +1,7 @@
-const API_BASE_URL = "https://jordplan.no";
+const API_BASE_URL =
+  window.location.hostname === "localhost"
+    ? "https://jordplan.no"
+    : "https://my-mid.cyclic.app/jordplan.no";
 const TOKEN = "xqDbSZEfPbQwGpbKw3o6Yhaby950HlxjzxYJmX8G";
 
 const headers = {

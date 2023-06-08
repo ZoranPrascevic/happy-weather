@@ -1,4 +1,9 @@
 const tools = {
+  // Format date to "YYYY-MM-DD"
+  formatDate: (date) => {
+    return date.toISOString().slice(0, 10);
+  },
+  // Get the date range between startDate and today
   getRange: (startDate) => {
     const starting = new Date(startDate);
     const today = new Date();
@@ -11,8 +16,8 @@ const tools = {
       starting < yesterday
     ) {
       return {
-        from: starting.toISOString().slice(0, 10),
-        to: (today > october1 ? october1 : today).toISOString().slice(0, 10),
+        from: tools.formatDate(starting),
+        to: tools.formatDate(today > october1 ? october1 : today),
       };
     } else {
       console.log(
@@ -21,24 +26,30 @@ const tools = {
       return false;
     }
   },
+  // Process weather data to calculate daily averages and fill gaps between sow day and starting day of API data
   processWeatherData: (weatherData, sowDay) => {
     let daysData = [];
     let currentDay = weatherData[0][0].slice(0, 10);
-    let currentTempAvg = 0;
-    let currentPreciAvg = 0;
+    let currentTempSum = 0;
+    let currentPreciSum = 0;
     let currentLng = 0;
     weatherData.forEach(([day, temp, preci]) => {
       if (day.slice(0, 10) === currentDay) {
-        currentTempAvg =
-          (currentTempAvg * currentLng + temp) / (currentLng + 1);
-        currentPreciAvg =
-          (currentPreciAvg * currentLng + preci) / (currentLng + 1);
+        currentTempSum += temp;
+        currentPreciSum += preci;
         currentLng++;
       } else {
-        currentTempAvg = parseFloat(currentTempAvg.toFixed(2));
-        currentPreciAvg = parseFloat(currentPreciAvg.toFixed(2));
+        const currentTempAvg = parseFloat(
+          (currentTempSum / currentLng).toFixed(2)
+        );
+        const currentPreciAvg = parseFloat(
+          (currentPreciSum / currentLng).toFixed(2)
+        );
         daysData.push({
-          date: currentDay,
+          date: new Date(currentDay).toLocaleDateString("en-US", {
+            month: "numeric",
+            day: "numeric",
+          }),
           temp:
             currentTempAvg < 5
               ? currentTempAvg
@@ -47,14 +58,7 @@ const tools = {
                 !daysData[daysData.length - 1].dtemp
               ? currentTempAvg
               : null,
-          preci:
-            currentTempAvg < 5
-              ? currentPreciAvg
-              : daysData[daysData.length - 1] &&
-                daysData[daysData.length - 1].temp &&
-                !daysData[daysData.length - 1].dtemp
-              ? currentPreciAvg
-              : null,
+          preci: currentPreciAvg,
           dtemp:
             currentTempAvg >= 5
               ? currentTempAvg
@@ -63,18 +67,10 @@ const tools = {
                 !daysData[daysData.length - 1].temp
               ? currentTempAvg
               : null,
-          dpreci:
-            currentTempAvg >= 5
-              ? currentPreciAvg
-              : daysData[daysData.length - 1] &&
-                daysData[daysData.length - 1].dtemp &&
-                !daysData[daysData.length - 1].temp
-              ? currentPreciAvg
-              : null,
         });
         currentDay = day.slice(0, 10);
-        currentTempAvg = temp;
-        currentPreciAvg = preci;
+        currentTempSum = temp;
+        currentPreciSum = preci;
         currentLng = 1;
       }
     });
@@ -83,23 +79,28 @@ const tools = {
     }
     return daysData;
   },
+  // Fill date gaps with empty data (temp: 0, preci: 0)
   fillDateGap: (startDay, endDay, srcData) => {
     const startDate = new Date(startDay);
     const endDate = new Date(endDay);
-    const gapData = [];
-    for (
-      let date = startDate;
-      date < endDate;
-      date.setDate(date.getDate() + 1)
-    ) {
-      gapData.push({
-        date: date.toISOString().slice(0, 10),
-        temp: 0,
-        preci: 0,
-      });
-    }
+    const gapData = Array.from(
+      { length: Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) },
+      (_, i) => {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        return {
+          date: date.toLocaleDateString("en-US", {
+            month: "numeric",
+            day: "numeric",
+          }),
+          temp: 0,
+          preci: 0,
+        };
+      }
+    );
     return [...gapData, ...srcData];
   },
+  // Check if there is a date gap between sow day and API data's start day
   checkDateGap: (startDay, endDay) => {
     const date1 = new Date(startDay);
     const date2 = new Date(endDay);
@@ -107,6 +108,30 @@ const tools = {
     const diffInDays = Math.round((date2 - date1) / (1000 * 60 * 60 * 24));
 
     return diffInDays > 0;
+  },
+  // Format tooltip values for display
+  tooltipFormatter: (value, name) => {
+    let formattedName = "";
+    let formattedValue = "";
+    switch (name) {
+      case "temp":
+        formattedName = value >= 5 ? null : "Temperature";
+        formattedValue = value >= 5 ? null : value + "℃";
+        break;
+      case "preci":
+        formattedName = "Precipitation";
+        formattedValue = value + "mm/hr";
+        break;
+      case "dtemp":
+        formattedName = value < 5 ? null : "Degree Day";
+        formattedValue =
+          value < 5 ? null : `${value}℃(+${(value - 5).toFixed(2)})`;
+        break;
+
+      default:
+        break;
+    }
+    return [formattedValue, formattedName];
   },
 };
 
