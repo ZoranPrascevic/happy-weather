@@ -29,7 +29,7 @@ const App = ({ paramData }) => {
       setIsError(false);
       setIsLoading(true);
       API.getWeather(paramData.id, { pov: "growth", ...dateRange })
-        .then((res) => tools.processWeatherData(res, paramData.sow))
+        .then((res) => tools.processWeatherData(res, sowDay))
         .then((daysData) => {
           setLineData({ daysData });
           setIsLoading(false);

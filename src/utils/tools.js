@@ -46,6 +46,7 @@ const tools = {
           (currentPreciSum / currentLng).toFixed(2)
         );
         daysData.push({
+          dateVal: currentDay,
           date: new Date(currentDay).toLocaleDateString("en-US", {
             month: "numeric",
             day: "numeric",
@@ -74,8 +75,8 @@ const tools = {
         currentLng = 1;
       }
     });
-    if (tools.checkDateGap(sowDay, daysData[0].date)) {
-      daysData = tools.fillDateGap(sowDay, daysData[0].date, daysData);
+    if (tools.checkDateGap(sowDay, daysData[0].dateVal)) {
+      daysData = tools.fillDateGap(sowDay, daysData[0].dateVal, daysData);
     }
     return daysData;
   },
